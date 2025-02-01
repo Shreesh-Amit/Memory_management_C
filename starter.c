@@ -30,6 +30,55 @@ void print_freelist(){
         trv=trv->next;
     }
 }
+node_t* insertionSort(node_t* head) {
+
+    if(head==NULL) return NULL;
+
+    node_t *sorted = NULL;
+    node_t *trv = head;
+
+    while(trv!=NULL){
+        void *curr_addr = trv->addr;
+        node_t *temp = (node_t *)malloc(sizeof(node_t));
+        temp->addr = curr_addr;
+        temp->size = trv->size;
+
+        if( sorted==NULL || sorted->addr >= curr_addr){
+            temp->next = sorted;
+            sorted = temp;
+        }
+        else{
+                node_t *curr = sorted->next;
+                node_t *prev = sorted;
+
+                while(curr!=NULL){
+                    if(curr_addr <= curr->addr){
+                        temp->next = curr;
+                        prev->next = temp;
+                        break;
+                    }
+                    prev=curr;
+                    curr=curr->next;
+                }
+
+                if(curr==NULL){
+                    temp->next = NULL;
+                    prev->next = temp;
+                }
+        }
+
+        trv=trv->next;
+    }
+
+    node_t *temp;
+    while(head!=NULL){
+        temp=head;
+        head=head->next;
+        free(temp);
+    }
+    
+    return sorted;
+}
 
 void * salloc(uint16_t size){
 
@@ -80,22 +129,42 @@ void sfree(void* ptr){
 
     if(ptr==NULL) return;
 
-    //check if pointer passed is correct
+    // check if pointer passed is correct
     header_t *hptr =((header_t *)ptr - 1);
     assert(hptr->magic_number==1234567);
 
-    //making sure the pointer is not doubled frred
+    // making sure the pointer is not doubled frred
     hptr->magic_number = 0;
 
-    //calculate the amount of empty space
+    // calculate the amount of empty space
     uint16_t empty_space = sizeof(header_t) + hptr->size;
 
-    //updating the freelist
+    // updating the freelist 
+    // Time complexity : O(1)
     node_t *node = (node_t *)malloc(sizeof(node_t)); 
     node->addr = hptr;
     node->size = empty_space;
     node->next = freelist;
     freelist = node;
+
+    //sorting for colaescing
+    freelist = insertionSort(freelist);
+    
+    node_t *curr = freelist->next;
+    node_t *prev = freelist;
+    //coalescing
+    while(curr!=NULL){
+        void *offset = (void *)((char *)prev->addr + prev->size);
+        if(offset == curr->addr){
+            prev->size += curr->size;
+            prev->next = curr->next;
+            free(curr);
+            curr=prev->next;
+        }else{
+            prev=curr;
+            curr=curr->next;
+        }
+    }
 
     return;
 }
@@ -122,6 +191,9 @@ void heap_init(){
 
 int main(){
     heap_init();
+    // size_t page_size = sysconf(_SC_PAGESIZE);
+	// printf("System Page Size: %zu byte\n", page_size);
+    
     // printf("size of header_t: %zu\n",sizeof(header_t));
     // char cmd[100];
     // uint16_t req;
