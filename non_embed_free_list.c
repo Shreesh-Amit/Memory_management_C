@@ -26,55 +26,40 @@ void print_freelist(){
     node_t *trv = freelist;
     printf("Freelist:\n");
     while(trv){
-        printf("Address = %p,Size = %hu\n",trv->addr,trv->size);
+        printf("[Address: %p] -> [Size: %hu]\n",trv->addr,trv->size);
         trv=trv->next;
     }
 }
-node_t* insertionSort(node_t* head) {
+node_t *insertionSort(node_t* head) {
 
     if(head==NULL) return NULL;
 
     node_t *sorted = NULL;
-    node_t *trv = head;
 
-    while(trv!=NULL){
-        void *curr_addr = trv->addr;
-        node_t *temp = (node_t *)malloc(sizeof(node_t));
-        temp->addr = curr_addr;
-        temp->size = trv->size;
-
-        if( sorted==NULL || sorted->addr >= curr_addr){
-            temp->next = sorted;
-            sorted = temp;
+    while(head!=NULL){
+        node_t *next = head->next;//stores the next address of head
+        if( sorted==NULL || sorted->addr >= head->addr){
+            head->next = sorted;
+            sorted = head;
         }
         else{
-                node_t *curr = sorted->next;
-                node_t *prev = sorted;
-
-                while(curr!=NULL){
-                    if(curr_addr <= curr->addr){
-                        temp->next = curr;
-                        prev->next = temp;
+                node_t *trv = sorted;
+                while(trv->next!=NULL){
+                    if(trv->next->addr >= head->addr){
+                        head->next = trv->next;
+                        trv->next = head;
                         break;
                     }
-                    prev=curr;
-                    curr=curr->next;
+                    trv=trv->next;
                 }
 
-                if(curr==NULL){
-                    temp->next = NULL;
-                    prev->next = temp;
+                if(trv->next==NULL){
+                    head->next=NULL;
+                    trv->next = head;
                 }
         }
 
-        trv=trv->next;
-    }
-
-    node_t *temp;
-    while(head!=NULL){
-        temp=head;
-        head=head->next;
-        free(temp);
+        head = next;
     }
     
     return sorted;
@@ -85,7 +70,7 @@ void * salloc(uint16_t size){
         if(size==0) return NULL;
         if(freelist==NULL){
             fprintf(stderr,"Heap Exhausted\n");
-            exit(1);
+            return NULL;
         }
 
         node_t *prev = NULL; // incase a node is needed to be freed
@@ -131,7 +116,10 @@ void sfree(void* ptr){
 
     // check if pointer passed is correct
     header_t *hptr =((header_t *)ptr - 1);
-    assert(hptr->magic_number==1234567);
+    if(hptr->magic_number!=1234567){
+        fprintf(stderr,"sfree(): invalid or double free detected at %p\n",ptr);
+        exit(1);
+    }
 
     // making sure the pointer is not doubled frred
     hptr->magic_number = 0;
@@ -165,7 +153,6 @@ void sfree(void* ptr){
             curr=curr->next;
         }
     }
-
     return;
 }
 
@@ -186,14 +173,14 @@ void heap_init(){
     freelist->size = HEAP_SIZE;
     freelist->next = NULL;
 
-    printf("Remaining space in heap after first node of freespace:%d\n",freelist->size);
+    // printf("Remaining space in heap after first node of freespace:%d\n",freelist->size);
 }
 
 int main(){
     heap_init();
     // size_t page_size = sysconf(_SC_PAGESIZE);
 	// printf("System Page Size: %zu byte\n", page_size);
-    
+
     // printf("size of header_t: %zu\n",sizeof(header_t));
     // char cmd[100];
     // uint16_t req;
@@ -231,12 +218,15 @@ int main(){
     if(ptr3==NULL){
         fprintf(stderr,"Memory Allocation Failed\n");
     }
+
     print_freelist();
     sfree(ptr1); 
-    print_freelist();
-    sfree(ptr2);
+
     print_freelist();
     sfree(ptr3);
+
+    print_freelist();
+    sfree(ptr2);
     print_freelist();
     return 0;
 
