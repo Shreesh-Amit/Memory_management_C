@@ -103,8 +103,9 @@ void sfree(void* ptr){
     // calculate the amount of empty space
     uint16_t available_space = sizeof(header_t) + hptr->size;
 
+    // will simply delete the available memory
+    // [IMPROVE: BY JOINING WITH ADJACENT BLOCKS IF POSSIBLE OR MAKE AS PADDING]
     if(available_space<=sizeof(node_t)) return;
-
 
     node_t *node = (node_t *)hptr; 
     node->size = available_space-sizeof(node_t);
