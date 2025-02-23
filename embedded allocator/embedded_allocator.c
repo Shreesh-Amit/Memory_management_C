@@ -1,8 +1,8 @@
 #define _GNU_SOURCE //Enables MAP_ANONYMOUS Flag since it is not a part of the posix standard
 #include <stdio.h>
 #include <stdint.h>
-#include <stdlib.h>
 #include <unistd.h>  
+#include <stdlib.h>
 #include <sys/mman.h>
 
 #define MAGIC_NUMBER 1234567

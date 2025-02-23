@@ -2,7 +2,7 @@
 #include "embedded_allocator.h"
 
 int main(){
-    heap_init(4096);
+    heap_init(100000);
 
     void *ptr1 = salloc(1000);
     if(ptr1==NULL){
